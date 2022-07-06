@@ -6,8 +6,8 @@
 
 #include <stdint.h>
 
-#define SCREEN_WIDTH 1024
-#define SCREEN_HEIGHT 768
+#define SCREEN_WIDTH 2048
+#define SCREEN_HEIGHT 1532
 
 // backbuffer
 extern uint32_t buffer[SCREEN_HEIGHT][SCREEN_WIDTH];
@@ -21,7 +21,6 @@ enum
   VK_RIGHT,
   VK_DOWN,
   VK_RETURN,
-
   VK__COUNT
 };
 
