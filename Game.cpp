@@ -20,7 +20,10 @@
 // debug FPS counter
 int32_t FRAME_COUNTER = 0;
 int64_t t0 = 0;
-void get_fps_count() {
+
+
+void get_fps_count() 
+{
   if (t0 == 0) {
     t0 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   } else {
@@ -36,8 +39,15 @@ void get_fps_count() {
 
 
 // initialize game data in this function
+int basic_pos_x = 40;
+int basic_pos_y = 40;
 void initialize()
 {
+  for (int i = basic_pos_y; i < basic_pos_y + 40; ++i) {
+    for (int j = basic_pos_x; j < basic_pos_x + 40; ++j) {
+      buffer[i][j] = 0xffff;
+    }
+  }
 }
 
 // this function is called to update game data,
@@ -46,7 +56,14 @@ void act(float dt)
 {
   if (is_key_pressed(VK_ESCAPE))
     schedule_quit_game();
-
+  if (is_key_pressed(VK_LEFT))
+    basic_pos_x = std::max(basic_pos_x - 2, 0);
+  if (is_key_pressed(VK_RIGHT))
+    basic_pos_x = std::min(basic_pos_x + 2, SCREEN_WIDTH - 40);
+  if (is_key_pressed(VK_DOWN))
+    basic_pos_y = std::min(basic_pos_y + 2, SCREEN_HEIGHT - 40);
+  if (is_key_pressed(VK_UP))
+    basic_pos_y = std::max(basic_pos_y - 2, 0);
 }
 
 // fill buffer in this function
@@ -54,15 +71,13 @@ void act(float dt)
 void draw()
 {
   // clear backbuffer
-  get_fps_count();
   memset(buffer, 0, SCREEN_HEIGHT * SCREEN_WIDTH * sizeof(uint32_t));
-  for (int i = 0; i < SCREEN_HEIGHT; ++i) {
-    for (int j = 0; j < SCREEN_WIDTH; ++j) {
-      uint32_t x = uint32_t(rand() * 103821027);
-      buffer[i][j] = x;
+  get_fps_count();
+  for (int i = basic_pos_y; i < basic_pos_y + 40; ++i) {
+    for (int j = basic_pos_x; j < basic_pos_x + 40; ++j) {
+      buffer[i][j] = 0xffff00;
     }
   }
-
 }
 
 // free game data in this function
