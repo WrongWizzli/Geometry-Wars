@@ -21,6 +21,8 @@
 //  schedule_quit_game() - quit game after act()
 
 // debug FPS counter
+BackGround b("fo/square_0x5d3fd3_31.png");
+Living_Objects objects;
 int32_t FRAME_COUNTER = 0;
 int64_t t0 = 0;
 
@@ -51,11 +53,10 @@ void initialize() {
     }
     int width, height, bpp;
     uint8_t* rgb_image = stbi_load("image.png", &width, &height, &bpp, 3);
-    Object *sq = new SquareMob(10, 10, 100, 100, 0.7, 7, "fo/inner_4_0xa7c7e7_250.png", 255);
-    Object *sq2 = new SquareMob(100, 10, 500, 500, 0.5, 4, "fo/inner_5_0x7cfc00_150.png", 255);
+    Object *sq = new ChaserMob(10, 10, 100, 100, 0.7, 7, "fo/inner_4_0xa7c7e7_250.png", 255);
+    Object *sq2 = new BouncerMob(10, 10, 500, 500, 10, -5.9, 10, "fo/inner_3_0xe30b5c_20.png", 255);
     objects.add(sq);
     objects.add(sq2);
-    std::cout << sq2->hp << " " << sq2->get_hp() << std::endl;
 }
 
 // this function is called to update game data,
