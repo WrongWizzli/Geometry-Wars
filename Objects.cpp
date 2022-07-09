@@ -57,7 +57,7 @@ Texture::Texture(const char *path) {
         data[i].set_black(0xff);
         rotdata[i] = data[i];
     }
-    tighten_image();
+    // tighten_image();
 }
 
 
@@ -156,7 +156,8 @@ void Texture::tighten_image() {
     if (jmax - jmin <= 0 || imax - imin <= 0) {
         return;
     }
-    int new_h = imax - imin, new_w = jmax - jmin;
+    int new_h = imax - imin + 2, new_w = jmax - jmin + 2;
+    std::cout << new_h << " " << new_w << " " << jmin << " " << imin << " " << jmax << " " << jmin <<  std::endl;
     Pixel *tight_data = new Pixel[new_h * new_w];
     Pixel *tight_data2 = new Pixel[new_h * new_w];
     for (int i = 0; i < height; ++i) {
@@ -323,6 +324,78 @@ BackGround::BackGround(const BackGround &c) {
 }
 
 
+// Score
+Score::Score(int32_t score_len): score_len(score_len) {
+    zero.tighten_image();
+    one.tighten_image();
+    std::cout << "LUL\n";
+    two.tighten_image();
+    std::cout << "LUL\n";
+    three.tighten_image();
+    four.tighten_image();
+    five.tighten_image();
+    six.tighten_image();
+    seven.tighten_image();
+    eight.tighten_image();
+    nine.tighten_image();
+}
+
+
+void Score::draw() {
+    int tmp_score = score;
+    int len = 0;
+    Texture draw_tex;
+    std::vector<int32_t> nums;
+    while (len != score_len) {
+        nums.push_back(tmp_score % 10);
+        tmp_score /= 10;
+        len++;
+    }
+    int joff = 0;
+    for (int i = nums.size() - 1; i >= 0; --i) {
+        switch (nums[i]) {
+            case 0:
+                draw_tex = zero;
+                break;
+            case 1:
+                draw_tex = one;
+                break;
+            case 2:
+                draw_tex = two;
+                break;
+            case 3:
+                draw_tex = three;
+                break;
+            case 4:
+                draw_tex = four;
+                break;
+            case 5:
+                draw_tex = five;
+                break;
+            case 6:
+                draw_tex = six;
+                break;
+            case 7:
+                draw_tex = seven;
+                break;
+            case 8:
+                draw_tex = eight;
+                break;
+            case 9:
+                draw_tex = nine;
+                break;
+        }
+        for (int i = 0; i < draw_tex.get_h(); ++i) {
+            for (int j = 0; j < draw_tex.get_w(); ++j) {
+                if (draw_tex[i * draw_tex.get_w() + j].is_color()) {
+                buffer[i][j + joff] = draw_tex[i * draw_tex.get_w() + j].alpha_mix(buffer[i][j]);
+                }
+            }
+        }
+        joff += draw_tex.get_w();
+    }
+}
+
 // Chaser
 ChaserMob::ChaserMob(double hp, double score, int xpos, int ypos, double speed, int32_t upd_ms, const char *path, uint8_t alpha): 
             hp(hp), score(score), xpos(xpos), ypos(ypos), speed(speed), upd_freq(upd_ms) {
@@ -482,8 +555,8 @@ Living_Objects::~Living_Objects() {
 
 
 // Player
-Player::Player(double speed, double damage, double xpos, double ypos, double xdir, double ydir, const char *path, const char *bpath):
-            speed(speed), damage(damage), xpos(xpos), ypos(ypos), xdir(xdir), ydir(ydir) {
+Player::Player(double speed, double shoot_speed_ms, double damage, double xpos, double ypos, double xdir, double ydir, const char *path, const char *bpath):
+            speed(speed), shoot_speed_ms(shoot_speed_ms), damage(damage), xpos(xpos), ypos(ypos), xdir(xdir), ydir(ydir) {
     tex = Texture(path);
     bullet_tex = Texture(bpath);
 }
@@ -506,6 +579,53 @@ void Player::act() {
 
 
 void Player::draw() {
+    int di = 0, dj = 0;
+    for (int i = ypos - tex.get_h2(); i < ypos + tex.get_h2(); ++i, ++di) {
+        dj = 0;
+        for (int j = xpos - tex.get_w2(); j < xpos + tex.get_w2(); ++j, ++dj) {
+            buffer[i][j] = tex[di * tex.get_w() + dj].alpha_mix(buffer[i][j]);
+        }
+    }
+}
+
+
+bool Player::can_shoot() {
+    int64_t cur_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    if (cur_time - last_shot_time > shoot_speed_ms) {
+        last_shot_time = cur_time;
+        return true;
+    }
+    return false;
+}
+
+// Player Bullet
+PlayerBullet::PlayerBullet(double damage, double speed, double xdir, double ydir, int32_t xpos, int32_t ypos, Texture &tex, int32_t upd_freq):
+            damage(damage), speed(speed), xdir(xdir), ydir(ydir), xpos(xpos), ypos(ypos), tex(tex), upd_freq(upd_freq) {
+    sdir = std::sqrt(xdir * xdir + ydir * ydir);
+    this->xdir /= sdir;
+    this->ydir /= sdir;
+    this->tex.calc_rotation_theta(xdir, ydir);
+    this->tex.rotate_image();
+}
+
+
+void PlayerBullet::act(int32_t xppos, int32_t yppos) {
+    int64_t cur_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    if (cur_time - timer > upd_freq) {
+        xresidue += xdir * speed, yresidue += ydir * speed;
+        int32_t xp1 = int32_t(xresidue), yp1 = int32_t(yresidue);
+        xresidue -= xp1, yresidue -= yp1;
+        xpos += xp1;
+        ypos += yp1;
+        if (xpos < tex.get_w2() || xpos > SCREEN_WIDTH - 1 - tex.get_w2() || ypos < tex.get_h2() || ypos > SCREEN_HEIGHT - 1 - tex.get_h2()) {
+            isdead = true;
+        }
+        timer = cur_time;
+    }
+}
+
+
+void PlayerBullet::draw() {
     int di = 0, dj = 0;
     for (int i = ypos - tex.get_h2(); i < ypos + tex.get_h2(); ++i, ++di) {
         dj = 0;

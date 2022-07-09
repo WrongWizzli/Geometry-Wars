@@ -23,19 +23,21 @@
 // debug FPS counter
 BackGround b("fo/square_0x5d3fd3_31.png");
 Living_Objects objects;
-Player p(2, 10, 500, 500, 0.0, 0.0, "fo/player2.png", "fo/square_0x5d3fd3_31.png");
+Player p(4, 20, 10, 500, 500, 0.0, 0.0, "fo/player2.png", "textures/bullet_small.png");
+Texture pbullet("textures/bullet_small.png");
+Score s(9);
+
+
 int32_t FRAME_COUNTER = 0;
-int64_t t0 = 0;
-
-
+int64_t fps_timer = 0;
 void get_fps_count() {
-    if (t0 == 0) {
-        t0 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    if (fps_timer == 0) {
+        fps_timer = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     } else {
-        auto t1 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        if (t1 - t0 > 1000) {
+        auto fps_timer1 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        if (fps_timer1 - fps_timer > 1000) {
         std::cout << "fps: " << FRAME_COUNTER << std::endl;
-        t0 = t1;
+        fps_timer = fps_timer1;
         FRAME_COUNTER = 0;
         }
         FRAME_COUNTER++;
@@ -44,14 +46,7 @@ void get_fps_count() {
 
 
 // initialize game data in this function
-void initialize() {
-    int width, height, bpp;
-    uint8_t* rgb_image = stbi_load("image.png", &width, &height, &bpp, 3);
-    Object *sq = new ChaserMob(10, 10, 100, 100, 0.7, 7, "fo/inner_4_0xa7c7e7_250.png", 255);
-    Object *sq2 = new BouncerMob(10, 10, 500, 500, -1, -0.6, 100, "fo/inner_3_0xe30b5c_50.png", 255);
-    objects.add(sq);
-    objects.add(sq2);
-}
+void initialize() {}
 
 // this function is called to update game data,
 // dt - time elapsed since the previous update (in seconds)
@@ -67,6 +62,11 @@ void act(float dt) {
     if (is_key_pressed(VK_UP))
         p.set_yspeed(-1);
     p.set_dir(get_cursor_x(), get_cursor_y());
+    if (is_mouse_button_pressed(0) && p.can_shoot()) {
+        Object *bullet = new PlayerBullet(2.0, 15, p.get_xdir(), p.get_ydir(),  p.get_xpos(), p.get_ypos(), pbullet, 10);
+        objects.add(bullet);
+        s.add_score(17);
+    }
     p.act();
     objects.act(p.get_xpos(), p.get_ypos());
 }
@@ -75,6 +75,7 @@ void act(float dt) {
 // uint32_t buffer[SCREEN_HEIGHT][SCREEN_WIDTH] - is an array of 32-bit colors (8 bits per R, G, B)
 void draw() {
     memcpy(buffer, b.background, SCREEN_HEIGHT * SCREEN_WIDTH * sizeof(uint32_t));
+    s.draw();
     objects.draw();
     p.draw();
     get_fps_count();

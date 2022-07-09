@@ -34,7 +34,6 @@ class Texture {
 
     void vhflip_image();
     void _rotate_image(double angle);
-    void tighten_image();
     public:
 
     Texture(){}
@@ -57,6 +56,7 @@ class Texture {
     void rotate_image();
     void death_animation();
     void death_animation2(int32_t death_speed);
+    void tighten_image();
 };
 
 
@@ -67,6 +67,26 @@ struct BackGround {
     BackGround(const char *s);
     BackGround(const BackGround &c);
     BackGround(BackGround &&c) = delete;
+};
+
+
+class Score {
+    Texture zero = Texture("textures/0.png");
+    Texture one = Texture("textures/1.png");
+    Texture two = Texture("textures/2.png");
+    Texture three = Texture("textures/3.png");
+    Texture four = Texture("textures/4.png");
+    Texture five = Texture("textures/5.png");
+    Texture six = Texture("textures/6.png");
+    Texture seven = Texture("textures/7.png");
+    Texture eight = Texture("textures/8.png");
+    Texture nine = Texture("textures/9.png");
+    int32_t score = 0;
+    int32_t score_len;
+    public:
+    Score(int32_t score_len);
+    void add_score(int32_t score) {this->score += score;}
+    void draw();
 };
 
 
@@ -83,8 +103,8 @@ struct Object {
     virtual double get_speed() const {return speed;}
     virtual int get_xpos() const {return xpos;}
     virtual int get_ypos() const {return ypos;}
-    virtual void act(int xppos, int yppos) = 0;
-    virtual void draw() = 0;
+    virtual void act(int xppos, int yppos){};
+    virtual void draw(){};
     virtual void attack(){}
     virtual void get_damage(double damage) {hp -= damage;}
     virtual bool is_dead() const {return hp <= 0;}
@@ -180,6 +200,26 @@ struct AngleShooterMob: public Object {
 };
 
 
+class PlayerBullet: public Object {
+    double speed;
+    double xdir, ydir, sdir;
+    double xresidue = 0, yresidue = 0;
+    double damage;
+    int32_t xpos, ypos;
+    Texture tex;
+    int64_t timer = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    int32_t upd_freq = 10;
+    bool isdead = false;
+
+    public:
+    PlayerBullet(double damage, double speed, double xdir, double ydir, int32_t xpos, int32_t ypos, Texture &tex, int32_t upd_freq);
+    void act(int xppos, int yppos);
+    void draw();
+    void set_dead() {isdead = true;}
+    bool is_dead() const {return isdead;}
+};
+
+
 class Living_Objects {
     std::vector<Object*> objects;
     int num_deleted = 0;
@@ -198,7 +238,7 @@ class Living_Objects {
 class Player {
     double speed;
     int xspeed = 0, yspeed = 0;
-    double shoot_speed;
+    double shoot_speed_ms, last_shot_time = 0;
     double damage;
     int xpos, ypos;
     double xdir = 0, ydir = 1;
@@ -208,19 +248,21 @@ class Player {
     int32_t upd_freq = 10;
 
     public:
-    Player(double speed, double damage, double xpos, double ypos, double xdir, double ydir, const char *path, const char *bpath);
+    Player(double speed, double shoot_speed_ms, double damage, double xpos, double ypos, double xdir, double ydir, const char *path, const char *bpath);
+    Player(){}
     void set_damage(double damage) {this->damage = damage;}
     void set_speed(double speed) {this->speed = speed;}
     void set_xspeed(int xspeed) {this->xspeed = xspeed;}
     void set_yspeed(int yspeed) {this->yspeed = yspeed;}
     void set_dir(double xdir, double ydir) {this->xdir = xdir - xpos, this->ydir = ydir - ypos;}
     void set_bullet_tex(Texture &tex) {this->tex = tex;}
+    Texture& get_bullet_tex() {return bullet_tex;}
     int get_xpos() const {return xpos;}
     int get_ypos() const {return ypos;}
     int get_xdir() const {return xdir;}
     int get_ydir() const {return ydir;}
 
-
     void act();
     void draw();
+    bool can_shoot();
 };
