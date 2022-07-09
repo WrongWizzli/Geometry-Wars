@@ -23,6 +23,7 @@
 // debug FPS counter
 BackGround b("fo/square_0x5d3fd3_31.png");
 Living_Objects objects;
+Player p(2, 10, 500, 500, 0.0, 0.0, "fo/player2.png", "fo/square_0x5d3fd3_31.png");
 int32_t FRAME_COUNTER = 0;
 int64_t t0 = 0;
 
@@ -43,18 +44,11 @@ void get_fps_count() {
 
 
 // initialize game data in this function
-int basic_pos_x = 40;
-int basic_pos_y = 40;
 void initialize() {
-    for (int i = basic_pos_y; i < basic_pos_y + 40; ++i) {
-        for (int j = basic_pos_x; j < basic_pos_x + 40; ++j) {
-        buffer[i][j] = 0xffff;
-        }
-    }
     int width, height, bpp;
     uint8_t* rgb_image = stbi_load("image.png", &width, &height, &bpp, 3);
     Object *sq = new ChaserMob(10, 10, 100, 100, 0.7, 7, "fo/inner_4_0xa7c7e7_250.png", 255);
-    Object *sq2 = new BouncerMob(10, 10, 500, 500, -1, -0.6, 10, "fo/inner_3_0xe30b5c_50.png", 255);
+    Object *sq2 = new BouncerMob(10, 10, 500, 500, -1, -0.6, 100, "fo/inner_3_0xe30b5c_50.png", 255);
     objects.add(sq);
     objects.add(sq2);
 }
@@ -65,14 +59,16 @@ void act(float dt) {
     if (is_key_pressed(VK_ESCAPE))
         schedule_quit_game();
     if (is_key_pressed(VK_LEFT))
-        basic_pos_x = std::max(basic_pos_x - 2, 0);
+        p.set_xspeed(-1);
     if (is_key_pressed(VK_RIGHT))
-        basic_pos_x = std::min(basic_pos_x + 2, SCREEN_WIDTH - 40);
+        p.set_xspeed(1);
     if (is_key_pressed(VK_DOWN))
-        basic_pos_y = std::min(basic_pos_y + 2, SCREEN_HEIGHT - 40);
+        p.set_yspeed(1);
     if (is_key_pressed(VK_UP))
-        basic_pos_y = std::max(basic_pos_y - 2, 0);
-    objects.act(basic_pos_x, basic_pos_y);
+        p.set_yspeed(-1);
+    p.set_dir(get_cursor_x(), get_cursor_y());
+    p.act();
+    objects.act(p.get_xpos(), p.get_ypos());
 }
 
 // fill buffer in this function
@@ -80,12 +76,8 @@ void act(float dt) {
 void draw() {
     memcpy(buffer, b.background, SCREEN_HEIGHT * SCREEN_WIDTH * sizeof(uint32_t));
     objects.draw();
+    p.draw();
     get_fps_count();
-    for (int i = basic_pos_y; i < basic_pos_y + 40; ++i) {
-        for (int j = basic_pos_x; j < basic_pos_x + 40; ++j) {
-        buffer[i][j] = 0x00ffffff;
-        }
-    }
 }
 
 // free game data in this function

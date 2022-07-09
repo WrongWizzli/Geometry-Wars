@@ -182,7 +182,16 @@ void Texture::tighten_image() {
 void Texture::set_rotation_theta(double theta) {
     this->theta = theta;
     if (theta < 0) {
-        this->theta = 2 * M_PI + this->theta;
+        this->theta += 2 * M_PI;
+    }
+}
+
+
+void Texture::calc_rotation_theta(double xdir, double ydir) {
+    next_theta = 0;
+    theta = std::atan2(-xdir, ydir);
+    if (theta < 0) {
+        theta += 2 * M_PI;
     }
 }
 
@@ -364,6 +373,7 @@ void ChaserMob::draw() {
 BouncerMob::BouncerMob(double hp, double score, int xpos, int ypos, double xdir, double ydir, int32_t upd_ms, const char *path, uint8_t alpha): 
             hp(hp), score(score), xpos(xpos), ypos(ypos), xdir(xdir), ydir(ydir), upd_freq(upd_ms) {
     tex = Texture(path);
+    tex.set_rotation_theta(M_PI / 18);
 }
 
 void BouncerMob::get_damage(double damage) {hp -= damage;}
@@ -377,6 +387,7 @@ int BouncerMob::get_ypos() const {return ypos;}
 void BouncerMob::act(int xppos, int yppos) {
     int64_t cur_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     if (cur_time - timer > upd_freq) {
+        tex.rotate_image();
         xresidue += xdir, yresidue += ydir;
         int32_t xp1 = int32_t(xresidue), yp1 = int32_t(yresidue);
         xresidue -= xp1, yresidue -= yp1;
@@ -466,5 +477,40 @@ Living_Objects::~Living_Objects() {
     for (int i = 0; i < objects.size(); ++i) {
         if (objects[i] != nullptr)
             delete objects[i];
+    }
+}
+
+
+// Player
+Player::Player(double speed, double damage, double xpos, double ypos, double xdir, double ydir, const char *path, const char *bpath):
+            speed(speed), damage(damage), xpos(xpos), ypos(ypos), xdir(xdir), ydir(ydir) {
+    tex = Texture(path);
+    bullet_tex = Texture(bpath);
+}
+
+
+void Player::act() {
+    int64_t cur_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    if (cur_time - timer > upd_freq) {
+        tex.calc_rotation_theta(xdir, ydir);
+        tex.rotate_image();
+        xpos += xspeed * speed;
+        ypos += yspeed * speed;
+        xpos = std::min(std::max(xpos, tex.get_w2()), SCREEN_WIDTH - 1 - tex.get_w2());
+        ypos = std::min(std::max(ypos, tex.get_h2()), SCREEN_HEIGHT - 1 - tex.get_h2());
+        timer = cur_time;
+        xspeed = 0;
+        yspeed = 0;
+    }
+}
+
+
+void Player::draw() {
+    int di = 0, dj = 0;
+    for (int i = ypos - tex.get_h2(); i < ypos + tex.get_h2(); ++i, ++di) {
+        dj = 0;
+        for (int j = xpos - tex.get_w2(); j < xpos + tex.get_w2(); ++j, ++dj) {
+            buffer[i][j] = tex[di * tex.get_w() + dj].alpha_mix(buffer[i][j]);
+        }
     }
 }

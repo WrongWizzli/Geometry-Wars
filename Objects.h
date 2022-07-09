@@ -53,6 +53,7 @@ class Texture {
     int get_c() const {return channels;}
     bool is_rotatable() const {return theta > 0;}
     void set_rotation_theta(double theta);
+    void calc_rotation_theta(double xdir, double ydir);
     void rotate_image();
     void death_animation();
     void death_animation2(int32_t death_speed);
@@ -190,5 +191,36 @@ class Living_Objects {
 
     void add(Object *obj);
     void act(int xppos, int yppos);
+    void draw();
+};
+
+
+class Player {
+    double speed;
+    int xspeed = 0, yspeed = 0;
+    double shoot_speed;
+    double damage;
+    int xpos, ypos;
+    double xdir = 0, ydir = 1;
+    Texture tex;
+    Texture bullet_tex;
+    int64_t timer = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    int32_t upd_freq = 10;
+
+    public:
+    Player(double speed, double damage, double xpos, double ypos, double xdir, double ydir, const char *path, const char *bpath);
+    void set_damage(double damage) {this->damage = damage;}
+    void set_speed(double speed) {this->speed = speed;}
+    void set_xspeed(int xspeed) {this->xspeed = xspeed;}
+    void set_yspeed(int yspeed) {this->yspeed = yspeed;}
+    void set_dir(double xdir, double ydir) {this->xdir = xdir - xpos, this->ydir = ydir - ypos;}
+    void set_bullet_tex(Texture &tex) {this->tex = tex;}
+    int get_xpos() const {return xpos;}
+    int get_ypos() const {return ypos;}
+    int get_xdir() const {return xdir;}
+    int get_ydir() const {return ydir;}
+
+
+    void act();
     void draw();
 };
