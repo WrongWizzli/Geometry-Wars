@@ -12,13 +12,16 @@ Pixel::Pixel(uint32_t color) {
     a = color >> 24;
 }
 
+
 Pixel Pixel::swap_colors() {
     return Pixel(b, g, r, a);
 }
 
+
 uint32_t Pixel::pixel() const {
     return (uint32_t(a) << 24) + (uint32_t(r) << 16) + (uint32_t(g) << 8) + b;
 }
+
 
 uint32_t Pixel::alpha_mix(Pixel color) {
     uint32_t new_r, new_g, new_b;
@@ -28,9 +31,11 @@ uint32_t Pixel::alpha_mix(Pixel color) {
     return 0xff000000 + (new_r << 16) + (new_g << 8) + new_b;
 }
 
+
 bool Pixel::is_color() const {
     return uint32_t(r) + g + b;
 }
+
 
 void Pixel::set_black(uint8_t alpha) {
     if (!(this->is_color())) {
@@ -39,6 +44,7 @@ void Pixel::set_black(uint8_t alpha) {
         a = alpha;
     }
 }
+
 
 // Texture
 Texture::Texture(const char *path) {
@@ -51,7 +57,9 @@ Texture::Texture(const char *path) {
         data[i].set_black(0xff);
         rotdata[i] = data[i];
     }
+    tighten_image();
 }
+
 
 Texture::Texture(const Texture &c) {
     if (c.data != nullptr) {
@@ -69,6 +77,7 @@ Texture::Texture(const Texture &c) {
     }
 }
 
+
 Texture::Texture(Texture &&c) {
     if (c.data != nullptr) {
         data = c.data;
@@ -82,6 +91,7 @@ Texture::Texture(Texture &&c) {
         w2 = c.w2;
     }
 }
+
 
 Texture& Texture::operator=(const Texture &c) {
     if (&c != this) {
@@ -100,6 +110,7 @@ Texture& Texture::operator=(const Texture &c) {
     return *this;
 }
 
+
 Texture& Texture::operator=(Texture &&c) {
     data = c.data;
     rotdata = c.rotdata;
@@ -113,6 +124,7 @@ Texture& Texture::operator=(Texture &&c) {
     return *this;
 }
 
+
 Texture::~Texture() {
     if (data != nullptr) {
         free(data);
@@ -122,9 +134,56 @@ Texture::~Texture() {
     }
 }
 
+
+void Texture::tighten_image() {
+    int imin = height, imax = 0, jmin = width, jmax = 0;
+    for (int i = 0; i < height; ++i) {
+        for (int j = 0; j < width; ++j) {
+            if (rotdata[i * width + j].is_color()) {
+                imax = i + 1;
+                if (imin > i) {
+                    imin = i;
+                }
+                if (jmax < j) {
+                    jmax = j + 1;
+                }
+                if (jmin > j) {
+                    jmin = j;
+                }
+            }
+        }
+    }
+    if (jmax - jmin <= 0 || imax - imin <= 0) {
+        return;
+    }
+    int new_h = imax - imin, new_w = jmax - jmin;
+    Pixel *tight_data = new Pixel[new_h * new_w];
+    Pixel *tight_data2 = new Pixel[new_h * new_w];
+    for (int i = 0; i < height; ++i) {
+        int ioff = i - imin;
+        for (int j = 0; j < width; ++j) {
+            if (rotdata[i * width + j].is_color()) {
+                tight_data[ioff * new_w + j - jmin] = rotdata[i * width + j];
+                tight_data2[ioff * new_w + j - jmin] = rotdata[i * width + j];
+            }
+        }
+    }
+    delete[] data;
+    delete[] rotdata;
+    data = tight_data;
+    rotdata = tight_data2;
+    height = new_h;
+    width = new_w;
+    h2 = new_h / 2;
+    w2 = new_w / 2;
+}
+
+
 void Texture::set_rotation_theta(double theta) {
     this->theta = theta;
-    rotatable = true;
+    if (theta < 0) {
+        this->theta = 2 * M_PI + this->theta;
+    }
 }
 
 
@@ -163,30 +222,66 @@ void Texture::death_animation2(int32_t death_speed) {
 }
 
 
-void Texture::rotate_image() {
-    next_theta += theta;
-    if (next_theta > 2 * M_PI) {
-        next_theta -= 2 * M_PI;
+void Texture::vhflip_image() {
+    Pixel *newdata = new Pixel[width * height];
+    int vj = width - 1;
+    for (int i = 0; i < height; ++i) {
+        int vi = height - 1 - i;
+        for (int j = 0; j < width; ++j) {
+            if (data[i * width + j].is_color()) {
+                newdata[vi * width + vj - j] = data[i * width + j];
+            }
+        }
     }
-    double sin = std::sin(next_theta);
-    double tan2 = std::sin(next_theta / 2) / std::cos(next_theta / 2);
-    memset(data, 0, width * height * sizeof(Pixel));
+    delete[] data;
+    data = newdata;
+}
+
+
+void Texture::_rotate_image(double angle) {
+    double sin = std::sin(angle);
+    double tan2 = std::sin(angle / 2) / std::cos(angle / 2);
     double dh2 = (double)height / 2, dw2 = (double)width / 2;
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
             if (rotdata[i * width + j].is_color()) {
                 double new_i = i - dh2, new_j = j - dw2;
-                new_j = new_j - tan2 * new_i;
-                new_i = new_i + sin * new_j;
-                new_j = new_j - tan2 * new_i;
+                new_j = int(new_j) - tan2 * int(new_i);
+                new_i = int(new_i) + sin * int(new_j);
+                new_j = int(new_j) - tan2 * int(new_i);
                 int ii = new_i, ij = new_j;
-                if (ii + dh2 >= 0 && ij + dw2 >= 0 && ii < h2 && ij < w2) {
+                if (ii + dh2 >= 0 && ij + dw2 >= 0 && ii < dh2 && ij < dw2) {
                     data[int(ii + dh2) * width + int(ij + dw2)] = rotdata[i * width + j];
                 }
             }
         }
     }
 }
+
+
+void Texture::rotate_image() {
+    memset(data, 0, width * height * sizeof(Pixel));
+    double angle;
+    bool isflip = false;
+    next_theta += theta;
+    if (next_theta >= 2 * M_PI) {
+        next_theta -= 2 * M_PI;
+    }
+    if (next_theta > M_PI / 2 && next_theta < M_PI + M_PI_2) {
+        angle = next_theta + M_PI;
+        isflip = true;
+        if (angle >= 2 * M_PI) {
+            angle -= 2 * M_PI;
+        }
+    } else {
+        angle = next_theta;
+    }
+    _rotate_image(angle);
+    if (isflip) {
+        vhflip_image();
+    }
+}
+
 
 // BackGround
 BackGround::BackGround(const char *s) {
@@ -269,7 +364,6 @@ void ChaserMob::draw() {
 BouncerMob::BouncerMob(double hp, double score, int xpos, int ypos, double xdir, double ydir, int32_t upd_ms, const char *path, uint8_t alpha): 
             hp(hp), score(score), xpos(xpos), ypos(ypos), xdir(xdir), ydir(ydir), upd_freq(upd_ms) {
     tex = Texture(path);
-    tex.set_rotation_theta(M_PI / 180);
 }
 
 void BouncerMob::get_damage(double damage) {hp -= damage;}
@@ -283,7 +377,6 @@ int BouncerMob::get_ypos() const {return ypos;}
 void BouncerMob::act(int xppos, int yppos) {
     int64_t cur_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     if (cur_time - timer > upd_freq) {
-        tex.rotate_image();
         xresidue += xdir, yresidue += ydir;
         int32_t xp1 = int32_t(xresidue), yp1 = int32_t(yresidue);
         xresidue -= xp1, yresidue -= yp1;

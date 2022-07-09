@@ -54,7 +54,7 @@ void initialize() {
     int width, height, bpp;
     uint8_t* rgb_image = stbi_load("image.png", &width, &height, &bpp, 3);
     Object *sq = new ChaserMob(10, 10, 100, 100, 0.7, 7, "fo/inner_4_0xa7c7e7_250.png", 255);
-    Object *sq2 = new BouncerMob(10, 10, 500, 500, 10, -5.9, 10, "fo/inner_3_0xe30b5c_20.png", 255);
+    Object *sq2 = new BouncerMob(10, 10, 500, 500, -1, -0.6, 10, "fo/inner_3_0xe30b5c_50.png", 255);
     objects.add(sq);
     objects.add(sq2);
 }

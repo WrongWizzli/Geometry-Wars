@@ -29,9 +29,12 @@ class Texture {
     int height, width, channels;
     int h2, w2;
     double tan2 = 0.0, sin = 0.0;
-    double theta;
+    double theta = 0.0;
     double next_theta = 0.0;
-    bool rotatable = false;
+
+    void vhflip_image();
+    void _rotate_image(double angle);
+    void tighten_image();
     public:
 
     Texture(){}
@@ -48,11 +51,11 @@ class Texture {
     int get_w() const {return width;}
     int get_w2() const {return w2;}
     int get_c() const {return channels;}
+    bool is_rotatable() const {return theta > 0;}
     void set_rotation_theta(double theta);
     void rotate_image();
     void death_animation();
     void death_animation2(int32_t death_speed);
-    bool is_rotatable() const {return rotatable;}
 };
 
 
