@@ -23,7 +23,7 @@
 // debug FPS counter
 BackGround b("fo/square_0x5d3fd3_31.png");
 Living_Objects objects;
-Player p(4, 20, 10, 500, 500, 0.0, 0.0, "fo/player2.png", "textures/bullet_small.png");
+Player p(4, 1000, 10, 500, 500, 0.0, 0.0, "fo/player2.png", "textures/bullet_small.png");
 Texture pbullet("textures/bullet_small.png");
 Score s(9);
 
@@ -46,7 +46,10 @@ void get_fps_count() {
 
 
 // initialize game data in this function
-void initialize() {}
+void initialize() {
+    Object *dd = new BouncerMob(1, 100, 800, 200, 1, 1, 10, "textures/4_yellow_thick.png", 255);
+    objects.add(dd);
+}
 
 // this function is called to update game data,
 // dt - time elapsed since the previous update (in seconds)
@@ -64,8 +67,7 @@ void act(float dt) {
     p.set_dir(get_cursor_x(), get_cursor_y());
     if (is_mouse_button_pressed(0) && p.can_shoot()) {
         Object *bullet = new PlayerBullet(2.0, 15, p.get_xdir(), p.get_ydir(),  p.get_xpos(), p.get_ypos(), pbullet, 10);
-        objects.add(bullet);
-        s.add_score(17);
+        objects.add_pbullet(bullet);
     }
     p.act();
     objects.act(p.get_xpos(), p.get_ypos());
@@ -74,11 +76,16 @@ void act(float dt) {
 // fill buffer in this function
 // uint32_t buffer[SCREEN_HEIGHT][SCREEN_WIDTH] - is an array of 32-bit colors (8 bits per R, G, B)
 void draw() {
+    memset(mob_map, 0, SCREEN_HEIGHT * SCREEN_WIDTH * sizeof(int32_t));
     memcpy(buffer, b.background, SCREEN_HEIGHT * SCREEN_WIDTH * sizeof(uint32_t));
     s.draw();
-    objects.draw();
+    int32_t kill_score = objects.draw();
+    s.add_score(kill_score);
     p.draw();
     get_fps_count();
+    if (p.is_dead()) {
+        schedule_quit_game();
+    }
 }
 
 // free game data in this function

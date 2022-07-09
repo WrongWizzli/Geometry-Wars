@@ -5,6 +5,10 @@
 #include <vector>
 #include <chrono>
 
+
+extern int32_t mob_map[SCREEN_HEIGHT][SCREEN_WIDTH];
+
+
 struct Pixel {
     uint8_t b = 0;
     uint8_t g = 0;
@@ -92,21 +96,23 @@ class Score {
 
 struct Object {
     double hp = 0;
-    double score = 0;
+    int32_t score = 0;
     double speed = 0;
+    double damage = 0;
 
     int xpos = 0, ypos = 0;
     Texture tex;
 
     virtual double get_hp() const {return hp;}
-    virtual double get_score() const {return score;}
+    virtual int32_t get_score() const {return score;}
     virtual double get_speed() const {return speed;}
+    virtual double get_damage() const {return damage;}
     virtual int get_xpos() const {return xpos;}
     virtual int get_ypos() const {return ypos;}
-    virtual void act(int xppos, int yppos){};
-    virtual void draw(){};
+    virtual void act(int xppos, int yppos){}
+    virtual int32_t draw(int32_t mob_idx){return 0;}
     virtual void attack(){}
-    virtual void get_damage(double damage) {hp -= damage;}
+    virtual void deal_damage(double damage) {hp -= damage;}
     virtual bool is_dead() const {return hp <= 0;}
     virtual ~Object(){}
 };
@@ -114,7 +120,7 @@ struct Object {
 
 struct ChaserMob: public Object {
     double hp;
-    double score;
+    int32_t score;
     double speed;
 
     double xresidue = 0, yresidue = 0;
@@ -125,24 +131,25 @@ struct ChaserMob: public Object {
     int64_t timer = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     int32_t upd_freq = 10;
 
-    ChaserMob(double hp, double score, int xpos, int ypos, double speed, int32_t upd_ms, const char *path, uint8_t alpha);
+    ChaserMob(double hp, int32_t score, int xpos, int ypos, double speed, int32_t upd_ms, const char *path, uint8_t alpha);
 
-    void get_damage(double damage);
+    void deal_damage(double damage);
+    double get_damage() const {return damage;}
     bool is_dead() const;
     double get_hp() const;
-    double get_score() const;
+    int32_t get_score() const;
     double get_speed() const;
     int get_xpos() const;
     int get_ypos() const;
 
     void act(int xppos, int yppos);
-    void draw();
+    int32_t draw(int32_t mob_idx);
 };
 
 
 struct BouncerMob: public Object {
     double hp;
-    double score;
+    int32_t score;
     double speed = 0;
 
     double xresidue = 0, yresidue = 0;
@@ -155,24 +162,25 @@ struct BouncerMob: public Object {
     int64_t timer = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     int32_t upd_freq = 10;
 
-    BouncerMob(double hp, double score, int xpos, int ypos, double xdir, double ydir, int32_t upd_ms, const char *path, uint8_t alpha);
+    BouncerMob(double hp, int32_t score, int xpos, int ypos, double xdir, double ydir, int32_t upd_ms, const char *path, uint8_t alpha);
 
-    void get_damage(double damage);
+    void deal_damage(double damage);
+    double get_damage() const {return damage;}
     bool is_dead() const;
     double get_hp() const;
-    double get_score() const;
+    int32_t get_score() const;
     double get_speed() const;
     int get_xpos() const;
     int get_ypos() const;
 
     void act(int xppos, int yppos);
-    void draw();
+    int32_t draw(int32_t mob_idx);
 };
 
 
 struct AngleShooterMob: public Object {
     double hp;
-    double score;
+    int32_t score;
     double speed;
 
     double xresidue = 0, yresidue = 0;
@@ -183,13 +191,14 @@ struct AngleShooterMob: public Object {
     int64_t timer = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     int32_t upd_freq = 10;
 
-    AngleShooterMob(double hp, double score, int xpos, int ypos, double speed, int32_t upd_ms, const char *path, const char *path_bullet, uint8_t alpha);
+    AngleShooterMob(double hp, int32_t score, int xpos, int ypos, double speed, int32_t upd_ms, const char *path, const char *path_bullet, uint8_t alpha);
     // ~AngleShooterMob();
 
-    void get_damage(double damage);
+    void deal_damage(double damage);
+    double get_damage() const {return damage;}
     bool is_dead() const;
     double get_hp() const;
-    double get_score() const;
+    int32_t get_score() const;
     double get_speed() const;
     int get_xpos() const;
     int get_ypos() const;
@@ -209,19 +218,21 @@ class PlayerBullet: public Object {
     Texture tex;
     int64_t timer = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     int32_t upd_freq = 10;
-    bool isdead = false;
+    double hp = 0.0001;
 
     public:
     PlayerBullet(double damage, double speed, double xdir, double ydir, int32_t xpos, int32_t ypos, Texture &tex, int32_t upd_freq);
     void act(int xppos, int yppos);
-    void draw();
-    void set_dead() {isdead = true;}
-    bool is_dead() const {return isdead;}
+    int32_t draw(int32_t mob_idx);
+    double get_damage() const {return damage;}
+    void deal_damage(double damage) {hp -= damage;}
+    bool is_dead() const {return hp <= 0;}
 };
 
 
 class Living_Objects {
     std::vector<Object*> objects;
+    std::vector<Object*> pbullets;
     int num_deleted = 0;
     
     void remake_vector();
@@ -230,8 +241,9 @@ class Living_Objects {
     ~Living_Objects();
 
     void add(Object *obj);
+    void add_pbullet(Object *obj);
     void act(int xppos, int yppos);
-    void draw();
+    int32_t draw();
 };
 
 
@@ -246,6 +258,7 @@ class Player {
     Texture bullet_tex;
     int64_t timer = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     int32_t upd_freq = 10;
+    bool isdead = false;
 
     public:
     Player(double speed, double shoot_speed_ms, double damage, double xpos, double ypos, double xdir, double ydir, const char *path, const char *bpath);
@@ -261,6 +274,7 @@ class Player {
     int get_ypos() const {return ypos;}
     int get_xdir() const {return xdir;}
     int get_ydir() const {return ydir;}
+    bool is_dead() const {return isdead;}
 
     void act();
     void draw();

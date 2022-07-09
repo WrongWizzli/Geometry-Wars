@@ -4,6 +4,9 @@
 #include <iostream>
 #include <cmath>
 
+#define MOBS_CODE 0xf00000
+int32_t mob_map[SCREEN_HEIGHT][SCREEN_WIDTH] = {0};
+
 // Pixel 
 Pixel::Pixel(uint32_t color) {
     r = color >> 16;
@@ -57,7 +60,6 @@ Texture::Texture(const char *path) {
         data[i].set_black(0xff);
         rotdata[i] = data[i];
     }
-    // tighten_image();
 }
 
 
@@ -157,7 +159,6 @@ void Texture::tighten_image() {
         return;
     }
     int new_h = imax - imin + 2, new_w = jmax - jmin + 2;
-    std::cout << new_h << " " << new_w << " " << jmin << " " << imin << " " << jmax << " " << jmin <<  std::endl;
     Pixel *tight_data = new Pixel[new_h * new_w];
     Pixel *tight_data2 = new Pixel[new_h * new_w];
     for (int i = 0; i < height; ++i) {
@@ -328,9 +329,7 @@ BackGround::BackGround(const BackGround &c) {
 Score::Score(int32_t score_len): score_len(score_len) {
     zero.tighten_image();
     one.tighten_image();
-    std::cout << "LUL\n";
     two.tighten_image();
-    std::cout << "LUL\n";
     three.tighten_image();
     four.tighten_image();
     five.tighten_image();
@@ -397,15 +396,15 @@ void Score::draw() {
 }
 
 // Chaser
-ChaserMob::ChaserMob(double hp, double score, int xpos, int ypos, double speed, int32_t upd_ms, const char *path, uint8_t alpha): 
+ChaserMob::ChaserMob(double hp, int32_t score, int xpos, int ypos, double speed, int32_t upd_ms, const char *path, uint8_t alpha): 
             hp(hp), score(score), xpos(xpos), ypos(ypos), speed(speed), upd_freq(upd_ms) {
     tex = Texture(path);
 }
 
-void ChaserMob::get_damage(double damage) {hp -= damage;}
+void ChaserMob::deal_damage(double damage) {hp -= damage;}
 bool ChaserMob::is_dead() const {return hp <= 0;}
 double ChaserMob::get_hp() const {return hp;}
-double ChaserMob::get_score() const {return score;}
+int32_t ChaserMob::get_score() const {return score;}
 double ChaserMob::get_speed() const {return speed;}
 int ChaserMob::get_xpos() const {return xpos;}
 int ChaserMob::get_ypos() const {return ypos;}
@@ -432,27 +431,35 @@ void ChaserMob::act(int xppos, int yppos) {
     }
 }
 
-void ChaserMob::draw() {
+int32_t ChaserMob::draw(int32_t mob_idx) {
+    int32_t pbullet_id = -1;
     int di = 0, dj = 0;
     for (int i = ypos - tex.get_h2(); i < ypos + tex.get_h2(); ++i, ++di) {
         dj = 0;
         for (int j = xpos - tex.get_w2(); j < xpos + tex.get_w2(); ++j, ++dj) {
             buffer[i][j] = tex[di * tex.get_w() + dj].alpha_mix(buffer[i][j]);
+            if(tex[di * tex.get_w() + dj].is_color()) {
+                if (mob_map[i][j] != 0) {       //Pbullet here
+                    pbullet_id = mob_map[i][j];
+                }
+                mob_map[i][j] = (mob_idx | MOBS_CODE);
+            }
         }
     }
+    return pbullet_id;
 }
 
 // Bouncer
-BouncerMob::BouncerMob(double hp, double score, int xpos, int ypos, double xdir, double ydir, int32_t upd_ms, const char *path, uint8_t alpha): 
+BouncerMob::BouncerMob(double hp, int32_t score, int xpos, int ypos, double xdir, double ydir, int32_t upd_ms, const char *path, uint8_t alpha): 
             hp(hp), score(score), xpos(xpos), ypos(ypos), xdir(xdir), ydir(ydir), upd_freq(upd_ms) {
     tex = Texture(path);
     tex.set_rotation_theta(M_PI / 18);
 }
 
-void BouncerMob::get_damage(double damage) {hp -= damage;}
+void BouncerMob::deal_damage(double damage) {hp -= damage;}
 bool BouncerMob::is_dead() const {return hp <= 0;}
 double BouncerMob::get_hp() const {return hp;}
-double BouncerMob::get_score() const {return score;}
+int32_t BouncerMob::get_score() const {return score;}
 double BouncerMob::get_speed() const {return speed;}
 int BouncerMob::get_xpos() const {return xpos;}
 int BouncerMob::get_ypos() const {return ypos;}
@@ -477,29 +484,37 @@ void BouncerMob::act(int xppos, int yppos) {
     }
 }
 
-void BouncerMob::draw() {
+int32_t BouncerMob::draw(int32_t mob_idx) {
+    int32_t pbullet_id = -1;
     int di = 0, dj = 0;
     for (int i = ypos - tex.get_h2(); i < ypos + tex.get_h2(); ++i, ++di) {
         dj = 0;
         for (int j = xpos - tex.get_w2(); j < xpos + tex.get_w2(); ++j, ++dj) {
             buffer[i][j] = tex[di * tex.get_w() + dj].alpha_mix(buffer[i][j]);
+            if (tex[di * tex.get_w() + dj].is_color()) {
+                if (mob_map[i][j] != 0) {
+                    pbullet_id = mob_map[i][j];
+                }
+                mob_map[i][j] = (mob_idx | MOBS_CODE);
+            }
         }
     }
+    return pbullet_id;
 }
 
 
 // Shooter
-AngleShooterMob::AngleShooterMob(double hp, double score, int xpos, int ypos, double speed, int32_t upd_ms, const char *path, const char *path_bullet, uint8_t alpha): 
+AngleShooterMob::AngleShooterMob(double hp, int32_t score, int xpos, int ypos, double speed, int32_t upd_ms, const char *path, const char *path_bullet, uint8_t alpha): 
             hp(hp), score(score), xpos(xpos), ypos(ypos), speed(speed), upd_freq(upd_ms) {
     tex = Texture(path);
     bullet = Texture(path_bullet);
 
 }
 
-void AngleShooterMob::get_damage(double damage) {hp -= damage;}
+void AngleShooterMob::deal_damage(double damage) {hp -= damage;}
 bool AngleShooterMob::is_dead() const {return hp <= 0;}
 double AngleShooterMob::get_hp() const {return hp;}
-double AngleShooterMob::get_score() const {return score;}
+int32_t AngleShooterMob::get_score() const {return score;}
 double AngleShooterMob::get_speed() const {return speed;}
 int AngleShooterMob::get_xpos() const {return xpos;}
 int AngleShooterMob::get_ypos() const {return ypos;}
@@ -507,17 +522,27 @@ int AngleShooterMob::get_ypos() const {return ypos;}
 
 // Living Objects
 void Living_Objects::remake_vector() {
-    std::vector<Object*> tmp;
+    std::vector<Object*> tmp, tmp2;
     for (int i = 0; i < objects.size(); ++i) {
         if (objects[i] != nullptr) {
             tmp.push_back(objects[i]);
         }
     }
+    for (int i = 0; i < pbullets.size(); ++i) {
+        if (pbullets[i] != nullptr) {
+            tmp2.push_back(pbullets[i]);
+        }
+    }
     objects = tmp;
+    pbullets = tmp2;
 }
 
 void Living_Objects::add(Object *obj) {
     objects.push_back(obj);
+}
+
+void Living_Objects::add_pbullet(Object *obj) {
+    pbullets.push_back(obj);
 }
 
 void Living_Objects::act(int xppos, int yppos) {
@@ -526,11 +551,29 @@ void Living_Objects::act(int xppos, int yppos) {
             objects[i]->act(xppos, yppos);
         }
     }
+    for (int i = 0; i < pbullets.size(); ++i) {
+        if (pbullets[i] != nullptr) {
+            pbullets[i]->act(xppos, yppos);
+        }
+    }
 }
 
-void Living_Objects::draw() {
-    if (num_deleted > 30 || num_deleted == objects.size()) {
+int32_t Living_Objects::draw() {
+    int32_t score = 0;
+    if (num_deleted > 30) {
         remake_vector();
+    }
+    for (int i = 0; i < pbullets.size(); ++i) {
+        if (pbullets[i] == nullptr) {
+            continue;
+        }
+        if (pbullets[i]->is_dead()) {
+            delete pbullets[i];
+            pbullets[i] = nullptr;
+            num_deleted++;
+        } else {
+             pbullets[i]->draw(i);
+        }
     }
     for (int i = 0; i < objects.size(); ++i) {
         if (objects[i] == nullptr) {
@@ -541,9 +584,17 @@ void Living_Objects::draw() {
             objects[i] = nullptr;
             num_deleted++;
         } else {
-            objects[i]->draw();
+            int32_t pbid = objects[i]->draw(i);
+            if (pbid != -1) {
+                objects[i]->deal_damage(pbullets[pbid]->get_damage());
+                pbullets[pbid]->deal_damage(1.0);
+                if (objects[i]->is_dead()) {
+                    score += objects[i]->get_score();
+                }
+            }
         }
     }
+    return score;
 }
 
 Living_Objects::~Living_Objects() {
@@ -584,6 +635,9 @@ void Player::draw() {
         dj = 0;
         for (int j = xpos - tex.get_w2(); j < xpos + tex.get_w2(); ++j, ++dj) {
             buffer[i][j] = tex[di * tex.get_w() + dj].alpha_mix(buffer[i][j]);
+            if(tex[di * tex.get_w() + dj].is_color() && (mob_map[i][j] & MOBS_CODE)) {
+                isdead = true;
+            }
         }
     }
 }
@@ -618,19 +672,23 @@ void PlayerBullet::act(int32_t xppos, int32_t yppos) {
         xpos += xp1;
         ypos += yp1;
         if (xpos < tex.get_w2() || xpos > SCREEN_WIDTH - 1 - tex.get_w2() || ypos < tex.get_h2() || ypos > SCREEN_HEIGHT - 1 - tex.get_h2()) {
-            isdead = true;
+            hp = -1.0;
         }
         timer = cur_time;
     }
 }
 
 
-void PlayerBullet::draw() {
+int32_t PlayerBullet::draw(int32_t mob_idx) {
     int di = 0, dj = 0;
     for (int i = ypos - tex.get_h2(); i < ypos + tex.get_h2(); ++i, ++di) {
         dj = 0;
         for (int j = xpos - tex.get_w2(); j < xpos + tex.get_w2(); ++j, ++dj) {
             buffer[i][j] = tex[di * tex.get_w() + dj].alpha_mix(buffer[i][j]);
+            if(tex[di * tex.get_w() + dj].is_color()) {
+                mob_map[i][j] = mob_idx;
+            }
         }
     }
+    return -1;
 }
