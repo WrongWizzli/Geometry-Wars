@@ -25,7 +25,7 @@
 BackGround background("fo/square_0x5d3fd3_31.png");
 DeathBackGround deathbackground;
 Living_Objects objects;
-Player player(4, 100, 10000, 500, 500, 0.0, 0.0, "fo/player2.png", "textures/monster_shot.png");
+Player player(4, 100, 10000, 500, 500, 0.0, 0.0, "textures/player.png", "textures/monster_shot.png");
 Texture pbullet("textures/monster_shot.png");
 Score score_counter(9);
 MobCreator mob_creator(0.5, 0.2, 0.5, 10000, 1000);
