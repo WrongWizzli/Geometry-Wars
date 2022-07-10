@@ -22,7 +22,7 @@
 
 // debug FPS counter
 
-BackGround background("fo/square_0x5d3fd3_31.png");
+BackGround background("textures/square_0x5d3fd3_31.png");
 DeathBackGround deathbackground;
 Living_Objects objects;
 Player player(4, 100, 10000, 500, 500, 0.0, 0.0, "textures/player.png", "textures/monster_shot.png");
