@@ -90,7 +90,7 @@ void draw() {
         memcpy(buffer, background.background, SCREEN_HEIGHT * SCREEN_WIDTH * sizeof(uint32_t));
         score_counter.draw();
         int32_t kill_score = objects.draw();
-        score_counter.add_score(kill_score);
+        score_counter.add_score(kill_score * 100);
         player.draw();
         player.draw_stats();
     }

@@ -271,6 +271,7 @@ class Player {
     Texture bullet_tex;
     int64_t timer = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     int32_t upd_freq = 10;
+    int64_t last_damage_time = -1;
     std::vector<Texture> nums {
     Texture("textures/0.png"),
     Texture("textures/1.png"),

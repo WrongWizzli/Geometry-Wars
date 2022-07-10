@@ -541,7 +541,7 @@ int32_t ChaserMob::draw(int32_t mob_idx) {
 BouncerMob::BouncerMob(double hp, int32_t score, int xpos, int ypos, double xdir, double ydir, int32_t upd_ms, Texture &tex, uint8_t alpha): 
             hp(hp), score(score), xpos(xpos), ypos(ypos), xdir(xdir), ydir(ydir), upd_freq(upd_ms), tex(tex) {
     if (udist(gen) > 0.3) {
-        this->tex.set_rotation_theta(2 * M_PI * udist(gen));
+        this->tex.set_rotation_theta(M_PI / 8 * udist(gen));
     }
 }
 
@@ -909,16 +909,16 @@ void Player::act() {
 
 
 void Player::draw() {
+    int64_t cur_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     int di = 0, dj = 0;
-    bool touched = false;
     for (int i = ypos - tex.get_h2(); i < ypos + tex.get_h2(); ++i, ++di) {
         dj = 0;
         for (int j = xpos - tex.get_w2(); j < xpos + tex.get_w2(); ++j, ++dj) {
             buffer[i][j] = tex[di * tex.get_w() + dj].alpha_mix(buffer[i][j]);
             if(tex[di * tex.get_w() + dj].is_color()) {
-                if (!touched && (mob_map[i][j] & MOBS_CODE)) {
+                if (cur_time - last_damage_time > 1000 && (mob_map[i][j] & MOBS_CODE)) {
                     hp--;
-                    touched = true;
+                    last_damage_time = cur_time;
                 }
             }
         }
@@ -1121,7 +1121,7 @@ Object* MobCreator::create_buff() {
 }
 
 Object* MobCreator::create_random_mob() {
-    if (udist(gen) > 0.99) {
+    if (udist(gen) > 0.97) {
         return create_buff();
     }
     switch (int(udist(gen) * 3) % 3) {
