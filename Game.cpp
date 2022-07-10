@@ -21,11 +21,13 @@
 //  schedule_quit_game() - quit game after act()
 
 // debug FPS counter
-BackGround b("fo/square_0x5d3fd3_31.png");
+BackGround background("fo/square_0x5d3fd3_31.png");
+DeathBackGround deathbackground;
 Living_Objects objects;
-Player p(4, 1000, 10, 500, 500, 0.0, 0.0, "fo/player2.png", "textures/bullet_small.png");
-Texture pbullet("textures/bullet_small.png");
-Score s(9);
+Player player(4, 100, 10000, 500, 500, 0.0, 0.0, "fo/player2.png", "textures/monster_shot.png");
+Texture pbullet("textures/monster_shot.png");
+Score score_counter(9);
+MobCreator mob_creator(0.5, 0.2, 0.5, 10000, 1000);
 
 
 int32_t FRAME_COUNTER = 0;
@@ -46,10 +48,7 @@ void get_fps_count() {
 
 
 // initialize game data in this function
-void initialize() {
-    Object *dd = new BouncerMob(1, 100, 800, 200, 1, 1, 10, "textures/4_yellow_thick.png", 255);
-    objects.add(dd);
-}
+void initialize() {}
 
 // this function is called to update game data,
 // dt - time elapsed since the previous update (in seconds)
@@ -57,35 +56,42 @@ void act(float dt) {
     if (is_key_pressed(VK_ESCAPE))
         schedule_quit_game();
     if (is_key_pressed(VK_LEFT))
-        p.set_xspeed(-1);
+        player.set_xspeed(-1);
     if (is_key_pressed(VK_RIGHT))
-        p.set_xspeed(1);
+        player.set_xspeed(1);
     if (is_key_pressed(VK_DOWN))
-        p.set_yspeed(1);
+        player.set_yspeed(1);
     if (is_key_pressed(VK_UP))
-        p.set_yspeed(-1);
-    p.set_dir(get_cursor_x(), get_cursor_y());
-    if (is_mouse_button_pressed(0) && p.can_shoot()) {
-        Object *bullet = new PlayerBullet(2.0, 15, p.get_xdir(), p.get_ydir(),  p.get_xpos(), p.get_ypos(), pbullet, 10);
+        player.set_yspeed(-1);
+    player.set_dir(get_cursor_x(), get_cursor_y());
+    if (is_mouse_button_pressed(0) && player.can_shoot()) {
+        Object *bullet = new PlayerBullet(2.0, 15, player.get_xdir(), player.get_ydir(),  player.get_xpos(), player.get_ypos(), pbullet, 10);
         objects.add_pbullet(bullet);
     }
-    p.act();
-    objects.act(p.get_xpos(), p.get_ypos());
+    player.act();
+    int32_t nlive = objects.act(player.get_xpos(), player.get_ypos());
+    objects.give_buffs(player);
+    Object *new_mob = mob_creator.act(nlive);
+    if (new_mob != nullptr) {
+        objects.add(new_mob);
+    }
 }
 
 // fill buffer in this function
 // uint32_t buffer[SCREEN_HEIGHT][SCREEN_WIDTH] - is an array of 32-bit colors (8 bits per R, G, B)
 void draw() {
-    memset(mob_map, 0, SCREEN_HEIGHT * SCREEN_WIDTH * sizeof(int32_t));
-    memcpy(buffer, b.background, SCREEN_HEIGHT * SCREEN_WIDTH * sizeof(uint32_t));
-    s.draw();
-    int32_t kill_score = objects.draw();
-    s.add_score(kill_score);
-    p.draw();
-    get_fps_count();
-    if (p.is_dead()) {
-        schedule_quit_game();
+    if (player.is_dead()) {
+        memcpy(buffer, deathbackground.background, SCREEN_HEIGHT * SCREEN_WIDTH * sizeof(uint32_t));
+    } else {
+        memset(mob_map, 0, SCREEN_HEIGHT * SCREEN_WIDTH * sizeof(int32_t));
+        memcpy(buffer, background.background, SCREEN_HEIGHT * SCREEN_WIDTH * sizeof(uint32_t));
+        score_counter.draw();
+        int32_t kill_score = objects.draw();
+        score_counter.add_score(kill_score);
+        player.draw();
+        player.draw_stats();
     }
+    //get_fps_count();
 }
 
 // free game data in this function
