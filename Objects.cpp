@@ -11,6 +11,8 @@ int32_t mob_map[SCREEN_HEIGHT][SCREEN_WIDTH] = {0};
 std::random_device rd;
 std::mt19937 gen(rd());
 std::uniform_real_distribution<double> udist(0., 1.);
+
+
 // Pixel 
 Pixel::Pixel(uint32_t color) {
     r = color >> 16;
@@ -202,6 +204,7 @@ void Texture::add_rotation_theta(double angle) {
     }
 }
 
+
 void Texture::calc_rotation_theta(double xdir, double ydir) {
     rotatable = true;
     next_theta = 0;
@@ -329,6 +332,7 @@ BackGround::BackGround(const char *s) {
     stbi_image_free(data);
 }
 
+
 BackGround::BackGround(const BackGround &c) {
     bwidth = c.bwidth, bheight = c.bheight;
     for (int i = 0; i < bheight; ++i) {
@@ -337,6 +341,7 @@ BackGround::BackGround(const BackGround &c) {
         }
     }
 }
+
 
 // DeathBackGround
 DeathBackGround::DeathBackGround() {
@@ -362,6 +367,8 @@ DeathBackGround::DeathBackGround() {
     delete[] data1;
     delete[] data2;
 }
+
+
 // Score
 Score::Score(int32_t score_len): score_len(score_len) {
     zero.tighten_image();
@@ -432,9 +439,11 @@ void Score::draw() {
     }
 }
 
+
 // Chaser
 ChaserMob::ChaserMob(double hp, int32_t score, int xpos, int ypos, double speed, int32_t upd_ms, Texture &tex, uint8_t alpha): 
             hp(hp), score(score), xpos(xpos), ypos(ypos), speed(speed), upd_freq(upd_ms), tex(tex) {}
+
 
 void ChaserMob::deal_damage(double damage) {hp -= damage;}
 bool ChaserMob::is_dead() const {return hp <= 0;}
@@ -448,6 +457,7 @@ int ChaserMob::get_ypos() const {return ypos;}
 void ChaserMob::check_new() {
     isnew = xpos < tex.get_w2() || xpos >= SCREEN_WIDTH - tex.get_w2() || ypos < tex.get_h2() || ypos >= SCREEN_HEIGHT - tex.get_h2();
 }
+
 
 void ChaserMob::act_main(int xppos, int yppos) {
     xresidue += speed, yresidue += speed;
@@ -501,6 +511,7 @@ void ChaserMob::act(int xppos, int yppos) {
     }
 }
 
+
 int32_t ChaserMob::draw(int32_t mob_idx) {
     int32_t pbullet_id = -1;
     int di = 0, dj = 0;
@@ -525,13 +536,15 @@ int32_t ChaserMob::draw(int32_t mob_idx) {
     return pbullet_id;
 }
 
+
 // Bouncer
 BouncerMob::BouncerMob(double hp, int32_t score, int xpos, int ypos, double xdir, double ydir, int32_t upd_ms, Texture &tex, uint8_t alpha): 
             hp(hp), score(score), xpos(xpos), ypos(ypos), xdir(xdir), ydir(ydir), upd_freq(upd_ms), tex(tex) {
-                if (udist(gen) > 0.3) {
-                    this->tex.set_rotation_theta(2 * M_PI * udist(gen));
-                }
-            }
+    if (udist(gen) > 0.3) {
+        this->tex.set_rotation_theta(2 * M_PI * udist(gen));
+    }
+}
+
 
 void BouncerMob::deal_damage(double damage) {hp -= damage;}
 bool BouncerMob::is_dead() const {return hp <= 0;}
@@ -629,6 +642,7 @@ int32_t BouncerMob::draw(int32_t mob_idx) {
 // Shooter
 AngleShooterMob::AngleShooterMob(double hp, int32_t score, int xpos, int ypos, double speed, double bspeed, int32_t upd_ms, int32_t bullet_ms, Texture &tex, Texture &btex, uint8_t alpha): 
             hp(hp), score(score), xpos(xpos), ypos(ypos), speed(speed), upd_freq(upd_ms), tex(tex), bullet(btex), bullet_ms(bullet_ms), bspeed(bspeed) {}
+
 
 void AngleShooterMob::deal_damage(double damage) {hp -= damage;}
 bool AngleShooterMob::is_dead() const {return hp <= 0;}
@@ -759,13 +773,16 @@ void Living_Objects::remake_vectors() {
     buffs = tmp3;
 }
 
+
 void Living_Objects::add(Object *obj) {
     objects.push_back(obj);
 }
 
+
 void Living_Objects::add_pbullet(Object *obj) {
     pbullets.push_back(obj);
 }
+
 
 int32_t Living_Objects::act(int xppos, int yppos) {
     for (int i = 0; i < objects.size(); ++i) {
@@ -787,6 +804,7 @@ int32_t Living_Objects::act(int xppos, int yppos) {
     }
     return objects.size();
 }
+
 
 int32_t Living_Objects::draw() {
     int32_t score = 0;
@@ -852,6 +870,7 @@ void Living_Objects::give_buffs(Player &p) {
         }
     }
 }
+
 
 Living_Objects::~Living_Objects() {
     for (int i = 0; i < objects.size(); ++i) {
@@ -940,6 +959,7 @@ void Buff::act(int xppos, int yppos) {
     }
 }
 
+
 int32_t Buff::draw(int32_t mob_idx) {
     int di = 0, dj = 0;
     for (int i = ypos - tex.get_h2(); i < ypos + tex.get_h2(); ++i, ++di) {
@@ -956,6 +976,7 @@ int32_t Buff::draw(int32_t mob_idx) {
     }
     return -1;
 }
+
 
 // Player Bullet
 PlayerBullet::PlayerBullet(double damage, double speed, double xdir, double ydir, int32_t xpos, int32_t ypos, Texture &tex, int32_t upd_freq):
@@ -1112,6 +1133,7 @@ Object* MobCreator::create_random_mob() {
             return create_shooter();
     }
 }
+
 
 Object* MobCreator::act(int nmobs) {
     int64_t cur_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();

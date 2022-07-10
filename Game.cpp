@@ -21,6 +21,7 @@
 //  schedule_quit_game() - quit game after act()
 
 // debug FPS counter
+
 BackGround background("fo/square_0x5d3fd3_31.png");
 DeathBackGround deathbackground;
 Living_Objects objects;
@@ -50,6 +51,7 @@ void get_fps_count() {
 // initialize game data in this function
 void initialize() {}
 
+
 // this function is called to update game data,
 // dt - time elapsed since the previous update (in seconds)
 void act(float dt) {
@@ -77,6 +79,7 @@ void act(float dt) {
     }
 }
 
+
 // fill buffer in this function
 // uint32_t buffer[SCREEN_HEIGHT][SCREEN_WIDTH] - is an array of 32-bit colors (8 bits per R, G, B)
 void draw() {
@@ -93,6 +96,7 @@ void draw() {
     }
     //get_fps_count();
 }
+
 
 // free game data in this function
 void finalize() {

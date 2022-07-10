@@ -15,6 +15,7 @@ extern int32_t mob_map[SCREEN_HEIGHT][SCREEN_WIDTH];
 extern std::uniform_real_distribution<double> udist;
 extern std::mt19937 gen;
 
+
 struct Pixel {
     uint8_t b = 0;
     uint8_t g = 0;
@@ -348,6 +349,7 @@ class Buff: public Object {
     int32_t get_score() const {return buff_type;}
     bool is_dead() const {return hp < 0;};
 };
+
 
 class MobCreator {
     std::vector<Texture> bouncer_enemies {
